@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -6,12 +7,17 @@ import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:data_collector2/session_class.dart';
 
 /// Контроллер сессии для теста взаимодействия с нейросетью.
 
 class NeuralNetSessionController{
+
+  final String serverAddress = 'https://qviz.fun/api/v1/get/predict/';
+
+  final http.Client client = http.Client();
 
   final CameraDescription camera;
 
@@ -79,7 +85,8 @@ class NeuralNetSessionController{
       final List<double> pointsList = compressingArrayByThree(biteList);
       final List<List<double>> pointsMatrix = sliceArray(pointsList, imgWidth);
       print (pointsMatrix);
-      getPosition(pointsMatrix, index);
+      getPosition3(pointsMatrix, "application/json", index);
+      //getPosition(pointsMatrix, index);
       print('$index Конец фото для позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
       log = "$log /n $index Конец фото для позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
     } catch(e){
@@ -101,7 +108,8 @@ class NeuralNetSessionController{
       final List<double> pointsList = compressingArrayByThree(biteList);
       final List<List<double>> pointsMatrix = sliceArray(pointsList, imgWidth);
       print (pointsMatrix);
-      getPosition(pointsMatrix, index);
+      getPosition3(pointsMatrix, "application/json", index);
+      //getPosition(pointsMatrix, index);
       print('$index Начало сохранения ${DateTime.now().second} ${DateTime.now().millisecond}');
       log = "$log /n $index Начало сохранения ${DateTime.now().second} ${DateTime.now().millisecond}";
       await ImageGallerySaver.saveImage(
@@ -152,13 +160,83 @@ class NeuralNetSessionController{
     return result;
   }
 
-  /// Посылает данные на сервер и ToDo.
+  /// Посылает данные на сервер и возвращает ответ сервера.
+  Future<void> getPosition3(Object forwardedData, String header, int index) async{
+    final String encodedData = json.encode({"photo": forwardedData});
+
+    print('$index Начало низкоуровневого2 получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
+    log = "$log /n $index Начало низкоуровневого2 получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
+
+    try{
+      var result = await http.post(
+        Uri.https('qviz.fun', 'api/v1/get/predict/'),
+        body: encodedData,
+        headers: {"content-type": header}
+      );
+      print('$index Конец низкоуровневого2 получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
+      log = "$log /n $index Конец низкоуровневого2 получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
+      //String responseAnswer = utf8.decode(postR.bodyBytes);
+
+
+      print("$index Позиция ${result.body.toString()} ${result.body} ${result.bodyBytes.toString()} ${utf8.decode(result.bodyBytes)}, ${result.bodyBytes}");
+      log = "$log /n $index Позиция ${result.body.toString()} ${result.body} ${result.bodyBytes.toString()} ${utf8.decode(result.bodyBytes)}, ${result.bodyBytes}";
+      //final Map<String, dynamic> json = jsonDecode(utf8.decode(postR.bodyBytes));
+      // final Map<String, dynamic> json = response.data;
+      // tilt = json["sensor"] as double;
+      // distance = json["distance"] as double;
+      screenState = ScreenState(tilt, distance, timerCount, frameNumber, isStop, log);
+      positionStateCtrl.add(screenState);
+
+
+    }catch(e){
+      print(e);
+      log = "$log /n $e";
+    }
+
+  }
+
+  /// Посылает данные на сервер и возвращает ответ сервера.
+  Future<void> getPosition2(Object forwardedData, String header, int index) async{
+    final String encodedData = json.encode({"photo": forwardedData});
+
+    print('$index Начало низкоуровневого получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
+    log = "$log /n $index Начало низкоуровневого получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
+
+    try{
+      http.Response postR = await client.post(
+        Uri.https('qviz.fun', 'api/v1/get/predict/'),
+        body: encodedData,
+        headers: {"content-type": header}
+      );
+      print('$index Конец низкоуровневого получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
+      log = "$log /n $index Конец низкоуровневого получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
+      //String responseAnswer = utf8.decode(postR.bodyBytes);
+
+
+      print("$index Позиция ${utf8.decode(postR.bodyBytes)}, $postR");
+      log = "$log /n $index Позиция ${utf8.decode(postR.bodyBytes)}, $postR";
+      final Map<String, dynamic> json = jsonDecode(utf8.decode(postR.bodyBytes));
+      // final Map<String, dynamic> json = response.data;
+      tilt = json["sensor"] as double;
+      distance = json["distance"] as double;
+      screenState = ScreenState(tilt, distance, timerCount, frameNumber, isStop, log);
+      positionStateCtrl.add(screenState);
+
+
+    }catch(e){
+      print(e);
+      log = "$log /n $e";
+    }
+
+  }
+
+  /// Посылает данные на сервер и  и возвращает ответ сервера используя Dio.
   Future<void> getPosition(Object forwardedData, int index) async{
     print('$index Начало получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
     log = "$log /n $index Начало получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
     try {
       Response response = await Dio().post(
-        'https://qviz.fun/api/v1/get/predict/',
+        serverAddress,
         data: {"photo": forwardedData});
       print('$index Конец получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
       log = "$log /n $index Конец получения позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
