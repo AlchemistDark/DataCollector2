@@ -52,7 +52,7 @@ class NeuralNetSessionController{
   }){
     _controller = CameraController(
       camera,
-      ResolutionPreset.max,
+      ResolutionPreset.medium,
       imageFormatGroup: ImageFormatGroup.yuv420
     );
     _initializeControllerFuture = _controller.initialize();
@@ -79,13 +79,15 @@ class NeuralNetSessionController{
       log = "$log /n $index Страт фото для позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
       await _initializeControllerFuture;
       final XFile photo = await _controller.takePicture();
+      print('$index Сделано фото для позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
+      log = "$log /n $index Сделано фото для позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
       final File file = File(photo.path);
       final img.Image resizedPhoto = img.copyResize(img.decodeImage(await file.readAsBytes())!, width: imgWidth, height: imgHeight);
       final List<int> biteList = resizedPhoto.getBytes(format: img.Format.rgb).toList();
       final List<double> pointsList = compressingArrayByThree(biteList);
       final List<List<double>> pointsMatrix = sliceArray(pointsList, imgWidth);
       print (pointsMatrix);
-      getPosition3(pointsMatrix, "application/json", index);
+      getPosition2(pointsMatrix, "application/json", index);
       //getPosition(pointsMatrix, index);
       print('$index Конец фото для позиции ${DateTime.now().second} ${DateTime.now().millisecond}');
       log = "$log /n $index Конец фото для позиции ${DateTime.now().second} ${DateTime.now().millisecond}";
@@ -102,13 +104,15 @@ class NeuralNetSessionController{
       log = "$log /n $index Страт фото для сохранения ${DateTime.now().second} ${DateTime.now().millisecond}";
       await _initializeControllerFuture;
       final XFile photo = await _controller.takePicture();
+      print('$index Сделано фото для сохранения ${DateTime.now().second} ${DateTime.now().millisecond}');
+      log = "$log /n $index Сделано фото для сохранения ${DateTime.now().second} ${DateTime.now().millisecond}";
       final File file = File(photo.path);
       final img.Image resizedPhoto = img.copyResize(img.decodeImage(await file.readAsBytes())!, width: imgWidth, height: imgHeight);
       final List<int> biteList = resizedPhoto.getBytes(format: img.Format.rgb).toList();
       final List<double> pointsList = compressingArrayByThree(biteList);
       final List<List<double>> pointsMatrix = sliceArray(pointsList, imgWidth);
       print (pointsMatrix);
-      getPosition3(pointsMatrix, "application/json", index);
+      getPosition2(pointsMatrix, "application/json", index);
       //getPosition(pointsMatrix, index);
       print('$index Начало сохранения ${DateTime.now().second} ${DateTime.now().millisecond}');
       log = "$log /n $index Начало сохранения ${DateTime.now().second} ${DateTime.now().millisecond}";
