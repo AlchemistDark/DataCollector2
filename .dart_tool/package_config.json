@@ -128,6 +128,12 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "google_ml_kit",
+      "rootUri": "file:///C:/job/flutter/.pub-cache/hosted/pub.dartlang.org/google_ml_kit-0.7.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "http",
       "rootUri": "file:///C:/job/flutter/.pub-cache/hosted/pub.dartlang.org/http-0.13.5",
       "packageUri": "lib/",
@@ -278,7 +284,7 @@
       "languageVersion": "2.12"
     }
   ],
-  "generated": "2023-04-21T00:17:59.915077Z",
+  "generated": "2023-04-27T08:08:02.615140Z",
   "generator": "pub",
   "generatorVersion": "2.14.4"
 }

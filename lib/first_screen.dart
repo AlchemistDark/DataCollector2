@@ -98,9 +98,6 @@ class _FirstPageState extends State<FirstPage> {
   }
 
   void _neuralNetModeStart(){
-    NeuralNetSessionController controller = NeuralNetSessionController(
-      camera: widget.camera,
-    );
     NeuralNetSession session = NeuralNetSession(
       number,
       gender,
@@ -111,6 +108,10 @@ class _FirstPageState extends State<FirstPage> {
       autoFocusEnable
     );
     List<List<int>> list = _generateListForNeuralNetScreen();
+    NeuralNetSessionController controller = NeuralNetSessionController(
+      session: session,
+      camera: widget.camera,
+    );
     Navigator.push(
       context, MaterialPageRoute(
         builder: (context) {

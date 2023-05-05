@@ -17,7 +17,13 @@ dependencies:
   dio: ^4.0.6
   image: ^3.1.3
   image_gallery_saver: ^1.7.1
+  google_ml_kit: ^0.7.3
   http: ^0.13.5
+
+  #flutter_better_camera:
+  #  git:
+  #    url: https://github.com/AlchemistDark/flutter_better_camera
+
 
 dev_dependencies:
   flutter_test:
