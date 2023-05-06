@@ -1,15 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'package:camera/camera.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:image/image.dart' as img;
-
 import 'package:data_collector2/background.dart';
 import 'package:data_collector2/neural_net_session_controller.dart';
-import 'package:data_collector2/position_controller.dart';
 import 'package:data_collector2/position_marker_widget.dart';
 import 'package:data_collector2/session_class.dart';
 
@@ -21,7 +14,7 @@ class NeuralNetSessionScreen extends StatelessWidget {
   final NeuralNetSession session;
   final List<List<int>> list;
 
-  NeuralNetSessionScreen({
+  const NeuralNetSessionScreen({
     required this.controller,
     required this.session,
     required this.list,
@@ -114,62 +107,61 @@ class _EyeTrackerScreenState extends State<EyeTrackerScreen> {
         double topPudding = widget.focusMarkerPaddingList[state.frameNumber][1];
         return Stack(
           children: [
-            Container(
-              child: Stack(
-                children: [
-                  if (widget.session.showBackground!)
-                    Background(
-                      areaWidth: widget.areaWidth,
-                      areaHeight: widget.areaHeight
+            if (widget.session.showBackground!)
+              Background(
+                areaWidth: widget.areaWidth,
+                areaHeight: widget.areaHeight
+              ),
+            if (!widget.session.showBackground!)
+              Container(
+                width: widget.areaWidth,
+                height: widget.areaHeight,
+                color: Colors.red.withOpacity(0),
+              ),
+            Padding(
+              padding: EdgeInsets.only(
+                left: leftPudding,
+                top: topPudding
+              ),
+              child: SizedBox(
+                width: widget.focusMarkerSize,
+                height: widget.focusMarkerSize,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      widget.focusMarkerSize / 2
                     ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: leftPudding,
-                      top: topPudding
-                    ),
-                    child: SizedBox(
-                      width: widget.focusMarkerSize,
-                      height: widget.focusMarkerSize,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            widget.focusMarkerSize / 2
-                          ),
-                          color: Colors.black
-                        ),
-                      )
-                    )
+                    color: Colors.black
                   ),
-                  // if(state.pauseTimer != 0)
-                  //   Center(
-                  //     child: Container(
-                  //       alignment: Alignment.center,
-                  //       height: MediaQuery.of(context).size.height / 2,
-                  //       width: MediaQuery.of(context).size.width / 2,
-                  //       color: Colors.white12.withOpacity(0.5),
-                  //       child: Text('${state.pauseTimer}'),
-                  //     )
-                  //   ),
-                  if(state.isAppStop)
-                    Center(
-                      child: Container(
-                        alignment: Alignment.center,
-                        height: MediaQuery.of(context).size.height / 2,
-                        width: MediaQuery.of(context).size.width / 2,
-                        color: Colors.white12.withOpacity(0.5),
-                        child: const Text('Конец!'),
-                      )
-                    )
-                ]
+                )
               )
             ),
-            // if(isStop)
-            //   const Center(
-            //     child: Text(
-            //       'Конец!',
-            //       style: TextStyle(fontSize: 30),
+            // if(state.pauseTimer != 0)
+            //   Center(
+            //     child: Container(
+            //       alignment: Alignment.center,
+            //       height: MediaQuery.of(context).size.height / 2,
+            //       width: MediaQuery.of(context).size.width / 2,
+            //       color: Colors.white12.withOpacity(0.5),
+            //       child: Text(
+            //         '${state.pauseTimer}',
+            //         style: TextStyle(fontSize: 30)
+            //       ),
             //     )
-            //   )
+            //   ),
+            if(state.isAppStop)
+              Center(
+                child: Container(
+                  alignment: Alignment.center,
+                  height: MediaQuery.of(context).size.height / 2,
+                  width: MediaQuery.of(context).size.width / 2,
+                  color: Colors.white12.withOpacity(0.5),
+                  child: const Text(
+                    'Конец!',
+                    style: TextStyle(fontSize: 30)
+                  )
+                )
+              )
           ]
         );
       }

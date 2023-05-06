@@ -1,15 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
-import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:camera/camera.dart';
-import 'package:dio/dio.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:data_collector2/session_class.dart';
@@ -447,34 +442,34 @@ class NeuralNetSessionController{
   /// Функция работы глазного трекера.
   Future<void>startEyeTracker(List<List<double>> list) async{
     Duration trackerDuration = const Duration(milliseconds: 100);
-    for (int i = frameNumber; i < list.length;) {
+    for (int i = frameNumber; i < (list.length - 1);) {
       // Если не на паузе.
       //if (pauseTimer == 0) {
-        i++;
         // if (screenState.timerCount == 0) {
-        frameNumber = i;
         await Future.delayed(trackerDuration, () {
           createNewFrameNumber(frameNumber);
           if (list[frameNumber][2] == 1) {
             toSavePhoto = true;
           }
         });
-     // }
+        i++;
+        frameNumber = i;
+      // }
     }
     // Если не выходит за границы допустимого диапазона.
-    if (((distance >= lowerLimit) || (height >= lowerLimit))
-        || ((distance <= upperLimit) || (height <= upperLimit))){
-      Duration pauseDuration = const Duration(milliseconds: 1000);
-      await Future.delayed(pauseDuration, () {
-        pauseTimer--;
-        eyeTrackerState = EyeTrackerState(
-          frameNumber: frameNumber,
-          pauseTimer: pauseTimer,
-          isAppStop: isAppStop
-        );
-        eyeTrackerCtrl.add(eyeTrackerState);
-      });
-    }
+    // if (((distance >= lowerLimit) || (height >= lowerLimit))
+    //     || ((distance <= upperLimit) || (height <= upperLimit))){
+    //   Duration pauseDuration = const Duration(milliseconds: 1000);
+    //   await Future.delayed(pauseDuration, () {
+    //     pauseTimer--;
+    //     eyeTrackerState = EyeTrackerState(
+    //       frameNumber: frameNumber,
+    //       pauseTimer: pauseTimer,
+    //       isAppStop: isAppStop
+    //     );
+    //     eyeTrackerCtrl.add(eyeTrackerState);
+    //   });
+    // }
 
     // // screenState = ScreenState(tilt, distance, 0, frameNumber, true);
     await Future.delayed(const Duration(milliseconds: 2000), () {
