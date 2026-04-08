@@ -1,91 +1,100 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
-import 'package:http/http.dart' as http;
 
+import 'package:data_collector2/domain/entities/app_constants.dart';
 import 'package:data_collector2/domain/entities/session_class.dart';
+import 'package:data_collector2/data/services/api_service.dart';
 import 'package:data_collector2/data/services/camera_stream_worker.dart';
 
-/// Контроллер сессии для теста взаимодействия с нейросетью.
-
-class NeuralNetSessionController{
-
-  /// Данные для сессии со стартового экрана.
+/// Controller that manages the data collection session and neural network interaction.
+/// 
+/// It orchestrates the camera lifecycle, background image processing via isolates,
+/// and synchronizes state between the gaze tracking sequence and real-time 
+/// smartphone position monitoring.
+class NeuralNetSessionController {
+  /// Session configuration and participant metadata.
   final NeuralNetSession session;
 
+  /// The camera hardware description to be used for streaming.
   final CameraDescription camera;
 
-  final String serverAddress = 'https://qviz.fun/api/v1/get/predict/';
+  /// Service for handling neural network predictions.
+  final ApiService _apiService = ApiService();
 
-  /// Клиент для REST API создаётся здесь. Один на весь сеанс пользователя.
-  final http.Client client = http.Client();
-
-  /// Контроллер камеры.
+  /// The internal Flutter camera controller.
   late CameraController _cameraCtrl;
+  
+  /// Future representing the camera initialization state.
   late Future<void> _initializeControllerFuture;
 
-  /// Размер фото, которое принимает нейросеть, определяющая позицию смартфона.
-  final int imgWidth = 120;
-  final int imgHeight = 180;
-
-  /// Нижняя допустимая граница положения смартфона.
-  final double lowerLimit = -0.375;
-  /// Верхняя дорустимая граница положения смартфона.
-  final double upperLimit = 0.345;
-
-  /// Флаг, что фото надо сохранить.
+  /// Flag indicating that the current frame should be saved as a high-quality photo.
   bool toSavePhoto = false;
-  /// Номер сохраняемой фотографии.
+  
+  /// Counter used for naming saved photographs.
   int photoNumber = 0;
 
-  /// Порт для отправки задач воркеру в Isolate.
+  /// Communication port for sending tasks to the background worker isolate.
   SendPort? _workerSendPort;
-  /// Флаг, что воркер сейчас занят обработкой кадра.
+  
+  /// Flag to prevent concurrent frame processing.
   bool _isProcessing = false;
-  /// Индекс текущего потокового кадра.
+  
+  /// Sequential index of the stream frames processed.
   int _streamIndex = 0;
 
-  /// Стрим состояния глазного трекера.
+  /// The maximum valid index for the gaze tracking path.
+  int _maxFrameIndex = 0;
+
+  /// Stream of gaze tracking state updates.
   Stream<EyeTrackerState> get eyeTrackerStream => eyeTrackerCtrl.stream;
-  final StreamController<EyeTrackerState> eyeTrackerCtrl
-      = StreamController<EyeTrackerState>.broadcast();
+  
+  /// Broadcast controller for gaze tracking state.
+  final StreamController<EyeTrackerState> eyeTrackerCtrl = StreamController<EyeTrackerState>.broadcast();
+  
+  /// Current state of the gaze tracking process.
   EyeTrackerState eyeTrackerState = EyeTrackerState(
     frameNumber: 0,
-    pauseTimer: 3,
-    isAppStop: false
+    pauseTimer: AppConstants.initialPauseSeconds,
+    isAppStop: false,
   );
-  /// Номер кадра анимации.
+  
+  /// Current frame index in the gaze tracking animation path.
   int frameNumber = 0;
-  /// Таймер отсчёта паузы,
-  /// если положение смартфона не соответсвует допустимому.
-  int pauseTimer = 3;
-  /// Флаг, что анимация закончилась и приложение надо остановить.
+  
+  /// Countdown timer for resuming the session when position is corrected.
+  int pauseTimer = AppConstants.initialPauseSeconds;
+  
+  /// Whether the session has completed or been manually stopped.
   bool isAppStop = false;
 
-  /// Стрим состояния индикатора положения смартфона.
-  Stream<PositionMarkerState> get positionMarkerStream
-      => positionMarkerStreamCtrl.stream;
-  final StreamController<PositionMarkerState> positionMarkerStreamCtrl
-      = StreamController<PositionMarkerState>.broadcast();
-  int positionMarkerScreenStatus = 0;
-  PositionMarkerState positionMarkerState
-      = PositionMarkerState(count: 0,  height: -1, distance: -1);
-  /// Количество ответов от сервера, возвращающего значеия позиции смартфона.
+  /// Stream of position marker state updates.
+  Stream<PositionMarkerState> get positionMarkerStream => positionMarkerStreamCtrl.stream;
+  
+  /// Broadcast controller for position marker state.
+  final StreamController<PositionMarkerState> positionMarkerStreamCtrl = StreamController<PositionMarkerState>.broadcast();
+  
+  /// Current state of the smartphone's sensed position.
+  PositionMarkerState positionMarkerState = PositionMarkerState(count: 0, height: -1, distance: -1);
+  
+  /// Total count of position predictions received from the server.
   int positionCount = 0;
-  /// Высота смартфона относительно глаз.
+  
+  /// The current vertical displacement of the smartphone relative to eyes.
   double height = -1;
-  /// Дистанция до смартфона.
+  
+  /// The current distance from the participant's eyes to the smartphone.
   double distance = -1;
 
-
-  /// Конструктор.
+  /// Initializes the controller and starts building the camera/worker infrastructure.
   NeuralNetSessionController({
     required this.session,
-    required this.camera
-  }){
+    required this.camera,
+  }) {
     _cameraCtrl = CameraController(
       camera,
       ResolutionPreset.medium,
@@ -97,17 +106,17 @@ class NeuralNetSessionController{
     _initIsolate();
   }
 
-  /// Инициализация воркера в Isolate.
+  /// Spawn the background isolate for image processing.
   Future<void> _initIsolate() async {
     final receivePort = ReceivePort();
     await Isolate.spawn(cameraImageWorker, receivePort.sendPort);
 
-    // Первым сообщением воркер присылает свой SendPort.
+    // The first message from the worker is its SendPort.
     final firstMessage = await receivePort.first;
     if (firstMessage is SendPort) {
       _workerSendPort = firstMessage;
       
-      // Слушаем результаты от воркера.
+      // Listen for processing results from the worker.
       receivePort.listen((message) {
         if (message is CameraStreamResult) {
           _handleWorkerResult(message);
@@ -116,418 +125,164 @@ class NeuralNetSessionController{
     }
   }
 
-  /// Обработка результата из Isolate.
+  /// Handles results returned from the background worker isolate.
+  /// 
+  /// Dispatches the luminosity matrix to the prediction server and
+  /// saves high-quality images to the gallery if requested.
   Future<void> _handleWorkerResult(CameraStreamResult result) async {
     _isProcessing = false;
 
-    // 1. Отправка матрицы на сервер для предсказания.
+    // 1. Send the matrix to the server for prediction.
     if (result.matrix != null) {
-      final String encodedData = json.encode({"photo": result.matrix});
-      getPosition(encodedData, "application/json", _streamIndex);
+      getPosition(result.matrix!, _streamIndex);
     }
 
-    // 2. Сохранение фото, если это было запрошено.
+    // 2. Save the photo if requested by the gaze tracker.
     if (result.jpegBytes != null && result.photoNumber != null) {
       await ImageGallerySaverPlus.saveImage(
         result.jpegBytes!,
-        name: "photo №${result.photoNumber}"
+        name: "photo №${result.photoNumber}",
       );
     }
   }
 
-  /// Создаёт список оступов для маркера глазного треккера.
+  /// Generates a list of screen coordinates (paddings) for the gaze focus marker.
+  ///
+  /// The path is defined as a series of target points with smooth transitions between them.
   List<List<double>> getFocusMarkerPaddingList(
-    backgroundPictureSize,
-    focusMarkerSize
-  ){
-    List<List<double>> result = [];
+    double backgroundPictureSize,
+    double focusMarkerSize,
+  ) {
+    final List<List<double>> result = [];
+    final double maxOffset = backgroundPictureSize - focusMarkerSize;
 
-    /// Первое число - горизонтальный отступ, второе - вертикальный отступ,
-    /// третье - если 1, то с этой позиции надо делать фото, если 0 - не надо.
+    /// Helper to add a static point with a capture trigger in the middle.
+    void addStaticPoint(double x, double y) {
+      for (int i = 0; i < 7; i++) {
+        result.add([x, y, 0]);
+      }
+      result.add([x, y, 1]); // Capture point
+      for (int i = 0; i < 7; i++) {
+        result.add([x, y, 0]);
+      }
+    }
 
-    // 1. Начало.
-    for (int i = 1; i < 8; i++){
-      result.add([0, 0, 0]);
+    /// Helper to add a smooth transition between two points.
+    void addTransition(double startX, double startY, double endX, double endY, int steps) {
+      for (int i = 1; i <= steps; i++) {
+        final double t = i / steps;
+        result.add([
+          startX + (endX - startX) * t,
+          startY + (endY - startY) * t,
+          0,
+        ]);
+      }
     }
-    result.add([0, 0, 1]);
-    for (int i = 1; i < 8; i++){
-      result.add([0, 0, 0]);
+
+    // Define the key waypoints of the experiment path.
+    final List<({double x, double y})> waypoints = [
+      (x: 0.0, y: 0.0), // 1. Start (Top Left)
+      (x: maxOffset, y: maxOffset), // 2. Inner corner of TL quadrant
+      (x: maxOffset, y: backgroundPictureSize), // 3. Top right of ML quadrant
+      (x: 0.0, y: backgroundPictureSize + maxOffset / 2), // 4. Left edge center
+      (x: maxOffset, y: backgroundPictureSize * 2 - focusMarkerSize), // 5. Bottom right of ML
+      (x: maxOffset, y: backgroundPictureSize * 2), // 6. Top right of BL quadrant
+      (x: 0.0, y: backgroundPictureSize * 3 - focusMarkerSize), // 7. Bottom left corner
+      (x: backgroundPictureSize * 2 - focusMarkerSize, y: backgroundPictureSize * 3 - focusMarkerSize), // 8. Bottom right corner
+      (x: backgroundPictureSize, y: backgroundPictureSize * 2), // 9. Top left of BR quadrant
+      (x: backgroundPictureSize, y: backgroundPictureSize * 2 - focusMarkerSize), // 10. Bottom left of MR
+      (x: backgroundPictureSize * 2 - focusMarkerSize, y: backgroundPictureSize + maxOffset / 2), // 11. Right edge center
+      (x: backgroundPictureSize, y: backgroundPictureSize), // 12. Top left of MR quadrant
+      (x: backgroundPictureSize, y: backgroundPictureSize - focusMarkerSize), // 13. Bottom left of TR
+      (x: backgroundPictureSize * 2 - focusMarkerSize, y: 0.0), // 14. Top right corner
+    ];
+
+    // Build the collection path frame by frame.
+    for (int i = 0; i < waypoints.length; i++) {
+      final point = waypoints[i];
+      addStaticPoint(point.x, point.y);
+
+      // If there is a next point, add a transition to it.
+      if (i < waypoints.length - 1) {
+        final nextPoint = waypoints[i + 1];
+        addTransition(point.x, point.y, nextPoint.x, nextPoint.y, 30);
+      }
     }
-    // Путь от 1 к 2.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize) / 30 * i,
-        (backgroundPictureSize - focusMarkerSize) / 30 * i,
-        0
-      ]);
-    }
-    // 2. Правый нижний угол верхнего левого квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize - focusMarkerSize),
-        0
-      ]);
-    }
-    result.add([
-      (backgroundPictureSize - focusMarkerSize),
-      (backgroundPictureSize - focusMarkerSize),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize - focusMarkerSize),
-        0
-      ]);
-    }
-    // Путь от 2 к 3.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        ((backgroundPictureSize - focusMarkerSize) + (focusMarkerSize / 30 * i)),
-        0
-      ]);
-    }
-    // 3. Правый верхний угол среднего левого квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize),
-        0
-      ]);
-    }
-    result.add([
-      (backgroundPictureSize - focusMarkerSize),
-      (backgroundPictureSize),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize),
-        0
-      ]);
-    }
-    // Путь от 3 к 4.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        ((backgroundPictureSize - focusMarkerSize)
-            - ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        (backgroundPictureSize
-            + (backgroundPictureSize - focusMarkerSize) / 60 * i),
-        0
-      ]);
-    }
-    // 4. Середина левой грани среднего левого квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        0,
-        (backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2),
-        0
-      ]);
-    }
-    result.add([
-      0,
-      (backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        0,
-        (backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2),
-        0
-      ]);
-    }
-    // Путь от 4 к 5.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize) / 30 * i,
-        ((backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2)
-            + ((backgroundPictureSize - focusMarkerSize) / 60 * i)),
-        0
-      ]);
-    }
-    // 5. Правый нижний угол среднего левого квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        0
-      ]);
-    }
-    result.add([
-      (backgroundPictureSize - focusMarkerSize),
-      (backgroundPictureSize * 2 - focusMarkerSize),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        0
-      ]);
-    }
-    // Путь от 5 к 6.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        ((backgroundPictureSize * 2 - focusMarkerSize)
-            + (focusMarkerSize / 30 * i)),
-        0
-      ]);
-    }
-    // 6. Правый верхний угол левого нижнего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize * 2),
-        0
-      ]);
-    }
-    result.add([
-      (backgroundPictureSize - focusMarkerSize),
-      (backgroundPictureSize * 2),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize - focusMarkerSize),
-        (backgroundPictureSize * 2),
-        0
-      ]);
-    }
-    // Путь от 6 к 7.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        ((backgroundPictureSize - focusMarkerSize)
-            - ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        ((backgroundPictureSize * 2)
-            + (backgroundPictureSize - focusMarkerSize) / 30 * i),
-        0
-      ]);
-    }
-    // 7. Левый нижний угол левого нижнего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([0, (backgroundPictureSize * 3 - focusMarkerSize), 0]);
-    }
-    result.add([0, (backgroundPictureSize * 3 - focusMarkerSize), 1]);
-    for (int i = 1; i < 8; i++){
-      result.add([0, (backgroundPictureSize * 3 - focusMarkerSize), 0]);
-    }
-    // Путь от 7 к 8.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        ((backgroundPictureSize * 2 - focusMarkerSize) / 30 * i),
-        (backgroundPictureSize * 3 - focusMarkerSize),
-        0
-      ]);
-    }
-    // 8. Правый нижний угол правого нижнего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        (backgroundPictureSize * 3 - focusMarkerSize),
-        0
-      ]);
-    }
-    result.add([
-      (backgroundPictureSize * 2 - focusMarkerSize),
-      (backgroundPictureSize * 3 - focusMarkerSize),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        (backgroundPictureSize * 3 - focusMarkerSize),
-        0
-      ]);
-    }
-    // Путь от 8 к 9.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        ((backgroundPictureSize * 2 - focusMarkerSize)
-            - ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        ((backgroundPictureSize * 3 - focusMarkerSize)
-            - ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        0
-      ]);
-    }
-    // 9. Левый верхний угол правого нижнего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([backgroundPictureSize, (backgroundPictureSize * 2), 0]);
-    }
-    result.add([backgroundPictureSize, (backgroundPictureSize * 2), 1]);
-    for (int i = 1; i < 8; i++){
-      result.add([backgroundPictureSize, (backgroundPictureSize * 2), 0]);
-    }
-    // Путь от 9 к 10.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        backgroundPictureSize,
-        ((backgroundPictureSize * 2) - (focusMarkerSize / 30 * i)),
-        0
-      ]);
-    }
-    // 10. Левый нижний угол правого среднего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        backgroundPictureSize,
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        0
-      ]);
-    }
-    result.add([
-      backgroundPictureSize,
-      (backgroundPictureSize * 2 - focusMarkerSize),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        backgroundPictureSize,
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        0
-      ]);
-    }
-    // Путь от 10 к 11.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        (backgroundPictureSize
-            + ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        ((backgroundPictureSize * 2 - focusMarkerSize)
-            - ((backgroundPictureSize - focusMarkerSize) / 60 * i)),
-        0
-      ]);
-    }
-    // 11. Середина правой грани правого среднего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        (backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2),
-        0
-      ]);
-    }
-    result.add([
-      (backgroundPictureSize * 2 - focusMarkerSize),
-      (backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        (backgroundPictureSize * 2 - focusMarkerSize),
-        (backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2),
-        0
-      ]);
-    }
-    // Путь от 11 к 12.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        ((backgroundPictureSize * 2 - focusMarkerSize)
-            - ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        ((backgroundPictureSize + (backgroundPictureSize - focusMarkerSize) / 2)
-            - ((backgroundPictureSize - focusMarkerSize) / 60 * i)),
-        0
-      ]);
-    }
-    // 12. Левый верхний угол правого среднего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([backgroundPictureSize, backgroundPictureSize, 0]);
-    }
-    result.add([backgroundPictureSize, backgroundPictureSize, 1]);
-    for (int i = 1; i < 8; i++){
-      result.add([backgroundPictureSize, backgroundPictureSize, 0]);
-    }
-    // Путь от 12 к 13.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        backgroundPictureSize,
-        (backgroundPictureSize - (focusMarkerSize / 30 * i)),
-        0
-      ]);
-    }
-    // 13. Левый нижний угол правого верхнего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([
-        backgroundPictureSize,
-        (backgroundPictureSize - focusMarkerSize),
-        0
-      ]);
-    }
-    result.add([
-      backgroundPictureSize,
-      (backgroundPictureSize - focusMarkerSize),
-      1
-    ]);
-    for (int i = 1; i < 8; i++){
-      result.add([
-        backgroundPictureSize,
-        (backgroundPictureSize - focusMarkerSize),
-        0
-      ]);
-    }
-    // Путь от 13 к 14.
-    for (int i = 1; i < 31; i++){
-      result.add([
-        (backgroundPictureSize
-            + ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        ((backgroundPictureSize - focusMarkerSize)
-            - ((backgroundPictureSize - focusMarkerSize) / 30 * i)),
-        0
-      ]);
-    }
-    // 14. Правый верхний угол правого верхнего квадрата
-    for (int i = 1; i < 8; i++){
-      result.add([(backgroundPictureSize * 2 - focusMarkerSize), 0, 0]);
-    }
-    result.add([(backgroundPictureSize * 2 - focusMarkerSize), 0, 1]);
-    for (int i = 1; i < 8; i++){
-      result.add([(backgroundPictureSize * 2 - focusMarkerSize), 0, 0]);
-    }
+
     return result;
   }
 
-  /// Функция работы глазного трекера.
-  Future<void>startEyeTracker(List<List<double>> list) async{
+  /// Starts the gaze tracking animation loop.
+  /// 
+  /// Iterates through the [list] of coordinates, updating the state every 100ms.
+  /// If the current coordinate is a photo trigger, notifies the processor to save the frame.
+  Future<void> startEyeTracker(List<List<double>> list) async {
+    if (list.isEmpty) return;
+    
+    _maxFrameIndex = list.length - 1;
     Duration trackerDuration = const Duration(milliseconds: 100);
-    for (int i = frameNumber; i < (list.length - 1);) {
-        await Future.delayed(trackerDuration, () {
-          createNewFrameNumber(frameNumber);
-          if (list[frameNumber][2] == 1) {
-            toSavePhoto = true;
-          }
-        });
-        i++;
-        frameNumber = i;
+
+    while (frameNumber <= _maxFrameIndex) {
+      if (isAppStop) break;
+
+      // Update state for current frame before the delay to keep UI reactive.
+      _broadcastEyeTrackerState();
+
+      // Trigger photo capture if the list indicates a keypoint.
+      if (list[frameNumber][2] == 1) {
+        toSavePhoto = true;
+      }
+
+      await Future.delayed(trackerDuration);
+      if (isAppStop) break;
+      
+      frameNumber++;
     }
-    await Future.delayed(const Duration(milliseconds: 2000), () {
-      stopApp();
-    });
+    
+    // Final delay before closing the session to allow last processing to finish.
+    if (!isAppStop) {
+      await Future.delayed(const Duration(milliseconds: 2000));
+      if (!isAppStop) stopApp();
+    }
   }
 
-  /// Переключает глазной треккер на следующий кадр.
-  void createNewFrameNumber (int number){
+  /// Broadcasts the current gaze tracker state.
+  /// 
+  /// Clamps the [frameNumber] to [_maxFrameIndex] to prevent RangeErrors in the UI.
+  void _broadcastEyeTrackerState() {
+    if (eyeTrackerCtrl.isClosed) return;
+    
     eyeTrackerState = EyeTrackerState(
-      frameNumber: number,
+      frameNumber: frameNumber.clamp(0, _maxFrameIndex),
       pauseTimer: pauseTimer,
-      isAppStop: isAppStop
+      isAppStop: isAppStop,
     );
     eyeTrackerCtrl.add(eyeTrackerState);
   }
 
-  /// Останавливает сессию.
-  void stopApp (){
+  /// Stops the session, disposes of the camera, and notifies listeners.
+  void stopApp() {
+    if (isAppStop) return;
     isAppStop = true;
-    eyeTrackerState = EyeTrackerState(
-      frameNumber: frameNumber,
-      pauseTimer: pauseTimer,
-      isAppStop: isAppStop
-    );
-    eyeTrackerCtrl.add(eyeTrackerState);
-    _cameraCtrl.dispose();
-    print('Остановка ${DateTime.now().second} ${DateTime.now().millisecond}');
+    
+    // Update state to notify UI about the stop.
+    _broadcastEyeTrackerState();
+    
+    dispose();
   }
 
-  /// Функция работы индикатора положения смартфона (теперь через ImageStream).
+  /// Releases all resources, stops streams, and closes controllers.
+  void dispose() {
+    isAppStop = true;
+    _cameraCtrl.dispose();
+    _apiService.dispose();
+    if (!eyeTrackerCtrl.isClosed) eyeTrackerCtrl.close();
+    if (!positionMarkerStreamCtrl.isClosed) positionMarkerStreamCtrl.close();
+  }
+
+  /// Starts the smartphone position monitoring via the camera image stream.
+  /// 
+  /// Ensures the camera is initialized before mounting the image stream handler.
   Future<void> startPositionMarker() async {
     await _initializeControllerFuture;
     
@@ -537,25 +292,27 @@ class NeuralNetSessionController{
     });
   }
 
-  /// Обработка каждого кадра из потока.
+  /// Entry point for each frame from the camera stream.
+  /// 
+  /// Offloads the frame to the background isolate for intensive image processing.
   void _onImageFrame(CameraImage image) {
     if (_workerSendPort == null || _isProcessing) return;
 
     _isProcessing = true;
     _streamIndex++;
 
-    // Подготавливаем задачу для воркера.
+    // Prepare processing configuration for the worker.
     final task = CameraStreamTask(
       planes: image.planes.map((p) => p.bytes).toList(),
       width: image.width,
       height: image.height,
-      targetWidth: imgWidth,
-      targetHeight: imgHeight,
+      targetWidth: AppConstants.imgWidth,
+      targetHeight: AppConstants.imgHeight,
       saveAsQuality: toSavePhoto,
       photoNumber: toSavePhoto ? ++photoNumber : null,
     );
 
-    // Сбрасываем флаг сохранения, так как мы уже "захватили" кадр.
+    // Reset the capture flag as the task has been queued.
     if (toSavePhoto) {
       toSavePhoto = false;
     }
@@ -563,89 +320,86 @@ class NeuralNetSessionController{
     _workerSendPort!.send(task);
   }
 
-  // Старые методы makePhoto и dataPreparing больше не нужны, так как логика в Isolate.
+  /// Sends the luminosity matrix to the prediction server and updates state.
+  /// 
+  /// The [matrix] is the processed luminosity data.
+  /// The [index] represents the frame order for synchronization.
+  Future<void> getPosition(List<List<double>> matrix, int index) async {
+    // Ensure we only process requests if the session is active.
+    if (isAppStop) return;
 
+    final prediction = await _apiService.getPrediction(matrix: matrix);
+    
+    if (prediction == null) return;
 
-  /// Посылает данные на сервер и возвращает ответ сервера.
-  Future<void> getPosition(String forwardedData, String header, int index) async{
-    print('№$index Начало получения позиции '
-        '${DateTime.now().second} ${DateTime.now().millisecond}');
-    try{
-      http.Response postR = await client.post(
-        Uri.https('qviz.fun', 'api/v1/get/predict/'),
-        body: forwardedData,
-        headers: {"content-type": header}
-      );
-      print('№$index Конец получения позиции '
-          '${DateTime.now().second} ${DateTime.now().millisecond}');
-      print('№$index Позиция ${utf8.decode(postR.bodyBytes)}, $postR');
-      // Проверка, что сервер возвращает ответы по-порядку,
-      // иначе ответы отбрасываются.
-      if (index > positionCount){
-        final Map<String, dynamic> json
-            = jsonDecode(utf8.decode(postR.bodyBytes));
-        positionCount = index;
-        height = json["sensor"] as double;
-        distance = json["distance"] as double;
-        if (((distance < lowerLimit) || (height < lowerLimit))
-            || ((distance > upperLimit) || (height > upperLimit))){
-          pauseTimer = 3;
-          eyeTrackerState = EyeTrackerState(
-            frameNumber: frameNumber,
-            pauseTimer: pauseTimer,
-            isAppStop: isAppStop
-          );
-          eyeTrackerCtrl.add(eyeTrackerState);
-        }
-        positionMarkerState = PositionMarkerState(
-          count: positionCount,
-          height: height,
-          distance: distance
-        );
-        positionMarkerStreamCtrl.add(positionMarkerState);
+    // Ensure we only process responses that are newer than our current state.
+    if (index > positionCount) {
+      positionCount = index;
+      height = prediction.sensor;
+      distance = prediction.distance;
+      
+      // Check if the smartphone position is outside valid bounds using centralized constants.
+      if (((distance < AppConstants.lowerLimit) || (height < AppConstants.lowerLimit)) || 
+          ((distance > AppConstants.upperLimit) || (height > AppConstants.upperLimit))) {
+        
+        debugPrint('Position out of bounds: H=$height, D=$distance');
+        
+        pauseTimer = AppConstants.initialPauseSeconds;
+        _broadcastEyeTrackerState();
       }
-    }catch(e){
-      print('№$index Ошибка $e '
-          '${DateTime.now().second} ${DateTime.now().millisecond}');
+      
+      positionMarkerState = PositionMarkerState(
+        count: positionCount,
+        height: height,
+        distance: distance,
+      );
+      if (!positionMarkerStreamCtrl.isClosed) positionMarkerStreamCtrl.add(positionMarkerState);
     }
   }
 
-  /// Сохранение фото.
-  Future<void>savePhoto(int number, XFile photo) async{
+  /// Manually saves an [XFile] to the device gallery.
+  Future<void> savePhoto(int number, XFile photo) async {
     await ImageGallerySaverPlus.saveImage(
       await photo.readAsBytes(),
-      name: "photo №$number"
+      name: "photo №$number",
     );
   }
-
 }
 
-/// Класс состояния глазного трекера.
-class EyeTrackerState{
-
+/// Represents the snapshot state of the gaze tracking process.
+class EyeTrackerState {
+  /// Current index in the gaze path coordinate list.
   final int frameNumber;
+  
+  /// Countdown until the gaze tracker resumes (if paused).
   final int pauseTimer;
+  
+  /// Whether the gaze track animation has concluded.
   final bool isAppStop;
 
+  /// Creates a state container for the gaze tracker.
   EyeTrackerState({
     required this.frameNumber,
     required this.pauseTimer,
-    required this.isAppStop
+    required this.isAppStop,
   });
-
 }
 
-/// Класс состояния индикатора положения смартфона.
-class PositionMarkerState{
-
+/// Represents the snapshot state of the smartphone's spatial position.
+class PositionMarkerState {
+  /// Sequence number of the prediction.
   final int count;
+  
+  /// Vertical offset relative to eyes.
   final double height;
+  
+  /// Distance from eyes.
   final double distance;
 
+  /// Creates a state container for position prediction data.
   PositionMarkerState({
     required this.count,
     required this.height,
-    required this.distance
+    required this.distance,
   });
-
 }

@@ -2,16 +2,32 @@ import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 
-/// Task sent to the worker isolate
+/// Data package sent to the worker isolate for processing.
+/// 
+/// Contains raw camera planes and target dimensions for resizing.
 class CameraStreamTask {
+  /// Raw YUV planes from the camera.
   final List<Uint8List> planes;
+  
+  /// Original width of the camera frame.
   final int width;
+  
+  /// Original height of the camera frame.
   final int height;
+  
+  /// Deserted width for the resized output matrix.
   final int targetWidth;
+  
+  /// Desired height for the resized output matrix.
   final int targetHeight;
+  
+  /// Whether to encode and return a high-quality JPEG of the frame.
   final bool saveAsQuality;
+  
+  /// The index of the photograph if it's being saved to the gallery.
   final int? photoNumber;
 
+  /// Creates a new [CameraStreamTask].
   CameraStreamTask({
     required this.planes,
     required this.width,
@@ -23,12 +39,20 @@ class CameraStreamTask {
   });
 }
 
-/// Result returned from the worker isolate
+/// Result return package from the worker isolate.
+/// 
+/// Contains the processed luminosity matrix and optional high-quality JPEG bytes.
 class CameraStreamResult {
+  /// A 2D matrix of luminosity values for neural network input.
   final List<List<double>>? matrix;
+  
+  /// Encoded JPEG bytes of the camera frame.
   final Uint8List? jpegBytes;
+  
+  /// The sequence number of the photo, if this result relates to a saved image.
   final int? photoNumber;
 
+  /// Creates a [CameraStreamResult] containing processed data.
   CameraStreamResult({
     this.matrix,
     this.jpegBytes,
@@ -36,7 +60,10 @@ class CameraStreamResult {
   });
 }
 
-/// The main entry point for the worker isolate
+/// The main entry point for the background worker isolate.
+/// 
+/// This isolate handles heavy image processing tasks (YUV conversion, resizing, 
+/// matrix generation, and JPEG encoding) to keep the UI thread responsive.
 void cameraImageWorker(SendPort sendPort) async {
   final port = ReceivePort();
   sendPort.send(port.sendPort);
@@ -70,13 +97,15 @@ void cameraImageWorker(SendPort sendPort) async {
         photoNumber: task.photoNumber,
       ));
     } catch (e) {
-      // In case of error, we don't want to crash the isolate
-      print("Worker Error: $e");
+      // Silent error handling to prevent isolate crash
+      // print("Worker Error: $e");
     }
   }
 }
 
-/// Converts YUV420_888 to img.Image
+/// Converts YUV420_888 format camera planes to a standard [img.Image].
+/// 
+/// Performs manual YUV to RGB color space conversion.
 img.Image _convertYUV420ToImage(CameraStreamTask task) {
   final int width = task.width;
   final int height = task.height;
@@ -99,7 +128,7 @@ img.Image _convertYUV420ToImage(CameraStreamTask task) {
       final int up = uPlane[uvIndex];
       final int vp = vPlane[uvIndex];
 
-      // Standard YUV to RGB conversion
+      // Standard YUV to RGB conversion formula
       int r = (yp + 1.402 * (vp - 128)).toInt();
       int g = (yp - 0.344136 * (up - 128) - 0.714136 * (vp - 128)).toInt();
       int b = (yp + 1.772 * (up - 128)).toInt();
@@ -114,7 +143,10 @@ img.Image _convertYUV420ToImage(CameraStreamTask task) {
   return image;
 }
 
-/// Ported logic from original compressingArrayByThree and slicer
+/// Generates a luminosity matrix from RGB bytes.
+/// 
+/// Averages RGB channels to get a single luminosity value per pixel
+/// and formats it into a 2D list according to the specified [width].
 List<List<double>> _generateMatrix(Uint8List rgbBytes, int width) {
   final List<double> averages = [];
   

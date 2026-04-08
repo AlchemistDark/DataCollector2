@@ -1,15 +1,19 @@
 import 'package:camera/camera.dart';
-
 import 'package:flutter/material.dart';
 
 import 'package:data_collector2/presentation/screens/neural_net_session_screen.dart';
 import 'package:data_collector2/presentation/controllers/neural_net_session_controller.dart';
 import 'package:data_collector2/domain/entities/session_class.dart';
 
-/// Экран предварительной настройки.
-
+/// The initial configuration screen where the user sets session parameters.
+/// 
+/// Allows inputting participant ID, gender, smartphone model, and 
+/// toggling background visibility before starting the experiment.
 class FirstPage extends StatefulWidget {
+  /// The camera description obtained during app initialization.
   final CameraDescription camera;
+
+  /// Creates a [FirstPage] with the provided camera.
   const FirstPage({super.key, required this.camera});
 
   @override
@@ -17,24 +21,34 @@ class FirstPage extends StatefulWidget {
 }
 
 class _FirstPageState extends State<FirstPage> {
-
-  /// Режим приложения (пока не используется).
+  /// The selected application mode (defaults to neural network data collection).
   AppMode appMode = AppMode.neuralNetCenter;
 
-  ///Поля которые пойду в название фотографий.
+  /// Participant identifier used for data labeling.
   String number = "0";
+  
+  /// Gender of the participant.
   Gender gender = Gender.male;
+  
+  /// Smartphone model used for the current collection session.
   PhoneModel model = PhoneModel.sony;
 
-  /// Настройки сессий (часть пока не используется).
+  /// Session timing settings (some values are currently using defaults).
   double screenTime = 3.0;
   double photoTime = 1.0;
   double delay = 5.0;
+  
+  /// Whether to display a background pattern behind the focus marker.
   bool? showBackground = false;
+  
+  /// Whether to enable auto-focus during the session.
   bool? autoFocusEnable = false;
 
-  /// Порядок отображения полоений маркера направления взгляда (пока не используется).
-  List<List<int>> _generateListForNeuralNetScreen(){
+  /// Generates the sequence of target positions for the gaze tracker.
+  /// 
+  /// Uses a predefined list of coordinate points and shuffles them 
+  /// to randomize the collection path.
+  List<List<int>> _generateListForNeuralNetScreen() {
     List<List<int>> temp = [[1, 1], [1, 2], [2, 1], [2, 2], [3, 1], [3, 2]];
     List<List<int>> result = [[1, 1], [1, 2], [2, 1], [2, 2], [3, 1], [3, 2]];
     temp.shuffle();
@@ -42,19 +56,34 @@ class _FirstPageState extends State<FirstPage> {
     return result;
   }
 
-  void _onNumberChanged(String newText){
-    number = newText;
+  /// Updates the participant number when input changes.
+  void _onNumberChanged(String newText) {
+    setState(() {
+      number = newText;
+    });
   }
 
-  void _startUp(){
-    switch(appMode) {
+  /// Entry point for starting the session based on the current [appMode].
+  void _startUp() {
+    if (number.trim().isEmpty || number == "0") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Пожалуйста, введите корректный номер участника"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    switch (appMode) {
       case AppMode.neuralNetCenter:
         _neuralNetModeStart();
         break;
     }
   }
 
-  void _neuralNetModeStart(){
+  /// Initializes the controller and navigates to the experiment screen.
+  void _neuralNetModeStart() {
     NeuralNetSession session = NeuralNetSession(
       number,
       gender,
@@ -62,7 +91,7 @@ class _FirstPageState extends State<FirstPage> {
       screenTime,
       photoTime,
       showBackground,
-      autoFocusEnable
+      autoFocusEnable,
     );
     List<List<int>> list = _generateListForNeuralNetScreen();
     NeuralNetSessionController controller = NeuralNetSessionController(
@@ -70,16 +99,16 @@ class _FirstPageState extends State<FirstPage> {
       camera: widget.camera,
     );
     Navigator.push(
-      context, MaterialPageRoute(
+      context,
+      MaterialPageRoute(
         builder: (context) {
           return NeuralNetSessionScreen(
             controller: controller,
             session: session,
-            //camera: widget.camera,
-            list: list
+            list: list,
           );
-        }
-      )
+        },
+      ),
     );
   }
 
@@ -87,27 +116,37 @@ class _FirstPageState extends State<FirstPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Введите настройки"),
+        title: const Text("Session Setup"),
       ),
       body: ListView(
         shrinkWrap: true,
         children: [
-          Column(
-            children: [
-              const Text("Номер"),
-              TextField(
-                keyboardType: TextInputType.number,
-                onChanged: (newText)=>_onNumberChanged(newText),
-                onSubmitted: (newText)=>_onNumberChanged(newText),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: "Вводить сюда",
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Номер участника",
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-              ),
-              const Text("Пол"),
-              ListTile(
-                title: const Text('Мужской'),
-                leading: Radio<Gender>(
+                const SizedBox(height: 8),
+                TextField(
+                  keyboardType: TextInputType.number,
+                  onChanged: _onNumberChanged,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: "Например: 123",
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "Пол",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                RadioListTile<Gender>(
+                  title: const Text('Мужской'),
                   value: Gender.male,
                   groupValue: gender,
                   onChanged: (Gender? value) {
@@ -116,10 +155,8 @@ class _FirstPageState extends State<FirstPage> {
                     });
                   },
                 ),
-              ),
-              ListTile(
-                title: const Text('Женский'),
-                leading: Radio<Gender>(
+                RadioListTile<Gender>(
+                  title: const Text('Женский'),
                   value: Gender.female,
                   groupValue: gender,
                   onChanged: (Gender? value) {
@@ -128,11 +165,13 @@ class _FirstPageState extends State<FirstPage> {
                     });
                   },
                 ),
-              ),
-              const Text("Модель смартфона"),
-              ListTile(
-                title: const Text('Redmy'),
-                leading: Radio<PhoneModel>(
+                const SizedBox(height: 24),
+                const Text(
+                  "Модель смартфона",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                RadioListTile<PhoneModel>(
+                  title: const Text('Redmy'),
                   value: PhoneModel.redmy,
                   groupValue: model,
                   onChanged: (PhoneModel? value) {
@@ -141,10 +180,8 @@ class _FirstPageState extends State<FirstPage> {
                     });
                   },
                 ),
-              ),
-              ListTile(
-                title: const Text('Sony'),
-                leading: Radio<PhoneModel>(
+                RadioListTile<PhoneModel>(
+                  title: const Text('Sony'),
                   value: PhoneModel.sony,
                   groupValue: model,
                   onChanged: (PhoneModel? value) {
@@ -153,10 +190,8 @@ class _FirstPageState extends State<FirstPage> {
                     });
                   },
                 ),
-              ),
-              ListTile(
-                title: const Text('Samsung'),
-                leading: Radio<PhoneModel>(
+                RadioListTile<PhoneModel>(
+                  title: const Text('Samsung'),
                   value: PhoneModel.samsung,
                   groupValue: model,
                   onChanged: (PhoneModel? value) {
@@ -165,25 +200,28 @@ class _FirstPageState extends State<FirstPage> {
                     });
                   },
                 ),
-              ),
-              CheckboxListTile(
-                title: const Text("Показывать фон?"),
-                value: showBackground,
-                onChanged: (newValue) {
-                  setState(() {
-                    showBackground = newValue;
-                  });
-                },
-                controlAffinity: ListTileControlAffinity.leading,  //  <-- leading Checkbox
-              ),
-            ]
-          )
-        ]
+                const SizedBox(height: 24),
+                CheckboxListTile(
+                  title: const Text("Показывать фон?"),
+                  subtitle: const Text("Отображать узор за маркером"),
+                  value: showBackground,
+                  onChanged: (newValue) {
+                    setState(() {
+                      showBackground = newValue;
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _startUp,
         tooltip: 'Start',
-        child: const Text("Начать"),
+        icon: const Icon(Icons.play_arrow),
+        label: const Text("Начать"),
       ),
     );
   }
