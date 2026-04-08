@@ -1,9 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'package:camera/camera.dart';
 
-import 'package:data_collector2/first_screen.dart';
+import 'package:data_collector2/presentation/screens/first_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +14,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key, required this.camera}) : super(key: key);
+  const MyApp({super.key, required this.camera});
   final CameraDescription camera;
   @override
   Widget build(BuildContext context) {

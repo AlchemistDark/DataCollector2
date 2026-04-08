@@ -1,0 +1,64 @@
+com.example.data_collector2.app-core-1.13.1-0 C:\Users\Dark SW\.gradle\caches\8.14\transforms\0a1a7ed3c225e299182e7a8d7c984462\transformed\core-1.13.1\res
+com.example.data_collector2.app-appcompat-resources-1.6.1-1 C:\Users\Dark SW\.gradle\caches\8.14\transforms\0a31d3250805bd8f4f26fe028e626efb\transformed\appcompat-resources-1.6.1\res
+com.example.data_collector2.app-lifecycle-viewmodel-2.7.0-2 C:\Users\Dark SW\.gradle\caches\8.14\transforms\0b08e6ae1826ff8284c2891580f3bb73\transformed\lifecycle-viewmodel-2.7.0\res
+com.example.data_collector2.app-core-ktx-1.13.1-3 C:\Users\Dark SW\.gradle\caches\8.14\transforms\0e93a386250e77788e43742966bb6af5\transformed\core-ktx-1.13.1\res
+com.example.data_collector2.app-core-1.0.0-4 C:\Users\Dark SW\.gradle\caches\8.14\transforms\17dd607b193c871c2a028f2ef265b9f0\transformed\core-1.0.0\res
+com.example.data_collector2.app-lifecycle-livedata-core-ktx-2.7.0-5 C:\Users\Dark SW\.gradle\caches\8.14\transforms\22d0a5e9c12ce5e5c5bb2e261e691414\transformed\lifecycle-livedata-core-ktx-2.7.0\res
+com.example.data_collector2.app-entity-extraction-16.0.0-beta5-6 C:\Users\Dark SW\.gradle\caches\8.14\transforms\23d9df02aedd041cd339995c24245f92\transformed\entity-extraction-16.0.0-beta5\res
+com.example.data_collector2.app-window-java-1.2.0-7 C:\Users\Dark SW\.gradle\caches\8.14\transforms\28320aada1f4d76946f468fb60825ad8\transformed\window-java-1.2.0\res
+com.example.data_collector2.app-activity-1.8.1-8 C:\Users\Dark SW\.gradle\caches\8.14\transforms\2c65fa870adb8d04c17182c58db64fa2\transformed\activity-1.8.1\res
+com.example.data_collector2.app-savedstate-1.2.1-9 C:\Users\Dark SW\.gradle\caches\8.14\transforms\2e8af8def41b946ad00c61bf3fb53e5a\transformed\savedstate-1.2.1\res
+com.example.data_collector2.app-featurecombinationquery-1.5.3-10 C:\Users\Dark SW\.gradle\caches\8.14\transforms\3565752c6ff151547dec029d75fe3aaa\transformed\featurecombinationquery-1.5.3\res
+com.example.data_collector2.app-camera-video-1.5.3-11 C:\Users\Dark SW\.gradle\caches\8.14\transforms\3d49c3aebf28c5297b3bfd11df920672\transformed\camera-video-1.5.3\res
+com.example.data_collector2.app-fragment-1.7.1-12 C:\Users\Dark SW\.gradle\caches\8.14\transforms\44c07f6d270113bd0875e31363a174bf\transformed\fragment-1.7.1\res
+com.example.data_collector2.app-camera-lifecycle-1.5.3-13 C:\Users\Dark SW\.gradle\caches\8.14\transforms\4d15bf76a4012752bd6a9d1dd3be2c2d\transformed\camera-lifecycle-1.5.3\res
+com.example.data_collector2.app-core-runtime-2.2.0-14 C:\Users\Dark SW\.gradle\caches\8.14\transforms\536dc7e2ba894270b816088c2bf4a32b\transformed\core-runtime-2.2.0\res
+com.example.data_collector2.app-lifecycle-livedata-core-2.7.0-15 C:\Users\Dark SW\.gradle\caches\8.14\transforms\5d7a9677735e78468e619adc5536a5fa\transformed\lifecycle-livedata-core-2.7.0\res
+com.example.data_collector2.app-lifecycle-service-2.7.0-16 C:\Users\Dark SW\.gradle\caches\8.14\transforms\64db61a81221e38f20c09565a7335f83\transformed\lifecycle-service-2.7.0\res
+com.example.data_collector2.app-emoji2-1.2.0-17 C:\Users\Dark SW\.gradle\caches\8.14\transforms\66c85d30a6cb95cf781fd4859d030696\transformed\emoji2-1.2.0\res
+com.example.data_collector2.app-window-1.2.0-18 C:\Users\Dark SW\.gradle\caches\8.14\transforms\76c39e2664fa28809aab1c774a6d8838\transformed\window-1.2.0\res
+com.example.data_collector2.app-play-services-basement-18.4.0-19 C:\Users\Dark SW\.gradle\caches\8.14\transforms\7a5a65a2e17a22844d11b6d2755fb372\transformed\play-services-basement-18.4.0\res
+com.example.data_collector2.app-lifecycle-runtime-2.7.0-20 C:\Users\Dark SW\.gradle\caches\8.14\transforms\8047bb403bf19d309d6dd376d606b7bf\transformed\lifecycle-runtime-2.7.0\res
+com.example.data_collector2.app-lifecycle-process-2.7.0-21 C:\Users\Dark SW\.gradle\caches\8.14\transforms\86a3203b60eaf40f9bcf3d79c1db2fe1\transformed\lifecycle-process-2.7.0\res
+com.example.data_collector2.app-tracing-1.2.0-22 C:\Users\Dark SW\.gradle\caches\8.14\transforms\87330ced69bc0467292ecaefdb27f741\transformed\tracing-1.2.0\res
+com.example.data_collector2.app-lifecycle-viewmodel-savedstate-2.7.0-23 C:\Users\Dark SW\.gradle\caches\8.14\transforms\881e6893b25057d6d4445f99b2c977a8\transformed\lifecycle-viewmodel-savedstate-2.7.0\res
+com.example.data_collector2.app-appcompat-1.6.1-24 C:\Users\Dark SW\.gradle\caches\8.14\transforms\88dc386a9901d3919f0971b5f9cc2fdf\transformed\appcompat-1.6.1\res
+com.example.data_collector2.app-translate-17.0.3-25 C:\Users\Dark SW\.gradle\caches\8.14\transforms\9d41e4b9201667592c16adb7f8529afb\transformed\translate-17.0.3\res
+com.example.data_collector2.app-work-multiprocess-2.7.0-26 C:\Users\Dark SW\.gradle\caches\8.14\transforms\9f20b5007af44209c8ade8804b852ec0\transformed\work-multiprocess-2.7.0\res
+com.example.data_collector2.app-lifecycle-livedata-2.7.0-27 C:\Users\Dark SW\.gradle\caches\8.14\transforms\a79412b2e12e83c0b096307627408f28\transformed\lifecycle-livedata-2.7.0\res
+com.example.data_collector2.app-exifinterface-1.4.2-28 C:\Users\Dark SW\.gradle\caches\8.14\transforms\a904a51abdf5fff1e2bf8c09f81d7476\transformed\exifinterface-1.4.2\res
+com.example.data_collector2.app-startup-runtime-1.1.1-29 C:\Users\Dark SW\.gradle\caches\8.14\transforms\bb4d7a99356783a23ee7b88b24b51d75\transformed\startup-runtime-1.1.1\res
+com.example.data_collector2.app-play-services-base-18.5.0-30 C:\Users\Dark SW\.gradle\caches\8.14\transforms\c2d84153960f9ac1f7144d552f9ace63\transformed\play-services-base-18.5.0\res
+com.example.data_collector2.app-annotation-experimental-1.4.1-31 C:\Users\Dark SW\.gradle\caches\8.14\transforms\c87a42078499cc8d2991c6e5c54892d3\transformed\annotation-experimental-1.4.1\res
+com.example.data_collector2.app-digital-ink-recognition-18.1.0-32 C:\Users\Dark SW\.gradle\caches\8.14\transforms\d103f1c3be5103502d5036699a9fc912\transformed\digital-ink-recognition-18.1.0\res
+com.example.data_collector2.app-profileinstaller-1.3.1-33 C:\Users\Dark SW\.gradle\caches\8.14\transforms\d175116ae0d1b0ee83676686d033d838\transformed\profileinstaller-1.3.1\res
+com.example.data_collector2.app-work-runtime-2.7.0-34 C:\Users\Dark SW\.gradle\caches\8.14\transforms\d2f39f2dd2d6a4975b8814e4ca63b5df\transformed\work-runtime-2.7.0\res
+com.example.data_collector2.app-work-runtime-ktx-2.7.0-35 C:\Users\Dark SW\.gradle\caches\8.14\transforms\d3480e7b33f270ffcaa659f1e4cdc7e5\transformed\work-runtime-ktx-2.7.0\res
+com.example.data_collector2.app-camera-core-1.5.3-36 C:\Users\Dark SW\.gradle\caches\8.14\transforms\da0fb726fd9ba3a83c4a114401c3666f\transformed\camera-core-1.5.3\res
+com.example.data_collector2.app-emoji2-views-helper-1.2.0-37 C:\Users\Dark SW\.gradle\caches\8.14\transforms\edf0a72ed6c4111f2ffef42d340e7f0c\transformed\emoji2-views-helper-1.2.0\res
+com.example.data_collector2.app-tracing-ktx-1.2.0-38 C:\Users\Dark SW\.gradle\caches\8.14\transforms\f4ff7ca59d1fba7d68eb9d3cd81d5fa0\transformed\tracing-ktx-1.2.0\res
+com.example.data_collector2.app-camera-camera2-1.5.3-39 C:\Users\Dark SW\.gradle\caches\8.14\transforms\f82d697803ac799a4f556c6ecde8f4d4\transformed\camera-camera2-1.5.3\res
+com.example.data_collector2.app-debug-40 D:\job\StudioProjects\DataCollector2\android\app\src\debug\res
+com.example.data_collector2.app-main-41 D:\job\StudioProjects\DataCollector2\android\app\src\main\res
+com.example.data_collector2.app-pngs-42 D:\job\StudioProjects\DataCollector2\build\app\generated\res\pngs\debug
+com.example.data_collector2.app-resValues-43 D:\job\StudioProjects\DataCollector2\build\app\generated\res\resValues\debug
+com.example.data_collector2.app-packageDebugResources-44 D:\job\StudioProjects\DataCollector2\build\app\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.example.data_collector2.app-packageDebugResources-45 D:\job\StudioProjects\DataCollector2\build\app\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.example.data_collector2.app-debug-46 D:\job\StudioProjects\DataCollector2\build\app\intermediates\merged_res\debug\mergeDebugResources
+com.example.data_collector2.app-debug-47 D:\job\StudioProjects\DataCollector2\build\camera_android_camerax\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-48 D:\job\StudioProjects\DataCollector2\build\flutter_plugin_android_lifecycle\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-49 D:\job\StudioProjects\DataCollector2\build\google_mlkit_barcode_scanning\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-50 D:\job\StudioProjects\DataCollector2\build\google_mlkit_commons\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-51 D:\job\StudioProjects\DataCollector2\build\google_mlkit_digital_ink_recognition\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-52 D:\job\StudioProjects\DataCollector2\build\google_mlkit_entity_extraction\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-53 D:\job\StudioProjects\DataCollector2\build\google_mlkit_face_detection\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-54 D:\job\StudioProjects\DataCollector2\build\google_mlkit_face_mesh_detection\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-55 D:\job\StudioProjects\DataCollector2\build\google_mlkit_image_labeling\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-56 D:\job\StudioProjects\DataCollector2\build\google_mlkit_language_id\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-57 D:\job\StudioProjects\DataCollector2\build\google_mlkit_object_detection\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-58 D:\job\StudioProjects\DataCollector2\build\google_mlkit_pose_detection\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-59 D:\job\StudioProjects\DataCollector2\build\google_mlkit_selfie_segmentation\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-60 D:\job\StudioProjects\DataCollector2\build\google_mlkit_smart_reply\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-61 D:\job\StudioProjects\DataCollector2\build\google_mlkit_text_recognition\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-62 D:\job\StudioProjects\DataCollector2\build\google_mlkit_translation\intermediates\packaged_res\debug\packageDebugResources
+com.example.data_collector2.app-debug-63 D:\job\StudioProjects\DataCollector2\build\image_gallery_saver_plus\intermediates\packaged_res\debug\packageDebugResources
